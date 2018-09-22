@@ -1,0 +1,14 @@
+*~
+*.bak
+*.obj
+*.bin
+*.crt
+*.tcrt
+*.orig
+
+*.creator*
+*.config
+*.files
+*.includes
+
+tapecart_flasher
