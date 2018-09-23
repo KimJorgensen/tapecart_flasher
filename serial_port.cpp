@@ -49,7 +49,7 @@ static bool setup_serial_port(int fd)
         if(cfsetospeed(&tio, B115200) != -1 &&          // 115200 baud
            cfsetispeed(&tio, B115200) != -1)
         {
-            if(tcsetattr(fd, TCSAFLUSH, &tio) != -1)
+            if(tcsetattr(fd, TCSANOW, &tio) != -1)
             {
                 result = true;
             }
