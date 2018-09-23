@@ -247,13 +247,19 @@ int main(int argc, char** argv)
         int fd = open_serial_port(argv[1]);
         if(fd != -1)
         {
-            setup_serial_port(fd);           
-            if(skip_init_tapecart || init_tapecart(fd, print_sketch_version))
+            if(setup_serial_port(fd))
             {
-                if(command(fd))
+                if(skip_init_tapecart || init_tapecart(fd, print_sketch_version))
                 {
-                    result = EXIT_SUCCESS;
+                    if(command(fd))
+                    {
+                        result = EXIT_SUCCESS;
+                    }
                 }
+            }
+            else
+            {
+                fprintf(stderr, "Failed to setup serial port. %s\n", strerror(errno));
             }
 
             close(fd);
@@ -265,7 +271,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        fprintf(stderr, "Tapecart Flasher v0.1\n");
+        fprintf(stderr, "Tapecart Flasher v0.2\n");
         fprintf(stderr, "Usage: %s <tty device> <command>\n", argv[0]);
         fprintf(stderr, "Commands:\n");
         fprintf(stderr, "    info\n");

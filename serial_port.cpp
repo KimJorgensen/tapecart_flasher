@@ -3,7 +3,15 @@
 
 static int open_serial_port(char *device)
 {
-    return open_file(device, O_RDWR);
+    int fd = open_file(device, O_RDWR);
+
+    if(fd != -1 && isatty(fd) == 0)
+    {
+        close(fd);
+        fd = -1;
+    }
+
+    return fd;
 }
 
 static bool read_bytes(int fd, void *buffer, size_t size)
@@ -16,20 +24,39 @@ static bool send_bytes(int fd, void *buffer, size_t size)
     return write_file(fd, buffer, size);
 }
 
-static void setup_serial_port(int fd)
-{
+static bool setup_serial_port(int fd)
+{   
+    bool result = false;
+
     termios tio = {};
+    if(tcgetattr(fd, &tio) != -1)
+    {
+        tio.c_iflag &= ~(IGNBRK|BRKINT|ICRNL|INLCR|     // Turn off input processing
+                         IGNCR|PARMRK|INPCK|ISTRIP|
+                         IXON|IXOFF|IXANY);
 
-    tio.c_iflag = 0;
-    tio.c_oflag = 0;
-    tio.c_cflag= CS8|CREAD|CLOCAL;  // 8n1
-    tio.c_lflag = 0;                // Raw mode
-    tio.c_cc[VMIN] = 0;
-    tio.c_cc[VTIME] = 30;           // 3.0 seconds timeout
+        tio.c_oflag &= ~OPOST;                          // Turn off output processing
 
-    cfsetospeed(&tio, B115200);     // 115200 baud
-    cfsetispeed(&tio, B115200);     // 115200 baud
-    tcsetattr(fd, TCSANOW, &tio);
+        tio.c_lflag &= ~(ECHO|ECHONL|ICANON|            // Raw mode
+                         IEXTEN|ISIG);
+
+        tio.c_cflag &= ~(CSIZE|PARENB|CRTSCTS|HUPCL);   // 8n1, no hardware flow control
+        tio.c_cflag |= CS8|CSTOPB|CREAD|CLOCAL;
+
+        tio.c_cc[VMIN] = 0;
+        tio.c_cc[VTIME] = 30;                           // 3.0 seconds timeout
+
+        if(cfsetospeed(&tio, B115200) != -1 &&          // 115200 baud
+           cfsetispeed(&tio, B115200) != -1)
+        {
+            if(tcsetattr(fd, TCSAFLUSH, &tio) != -1)
+            {
+                result = true;
+            }
+        }
+    }
+
+    return result;
 }
 
 static bool set_dtr(int fd, bool state)
